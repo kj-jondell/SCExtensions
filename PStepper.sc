@@ -5,12 +5,7 @@ Pstepper : Pattern {
 
     *new{
         arg size = 1, length = inf;
-        ^super.newCopyArgs(size, length).init();
-    }
-
-    init{
-        counter = 0;
-        reset = 0;
+        ^super.newCopyArgs(size, length);
     }
 
     storeArgs{
