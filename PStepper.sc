@@ -1,8 +1,6 @@
 Pstepper : Pattern {
-
     //Code based on Pwhite
     //Sequencer for PianoChopper
-
     var <>size, <>length, <counter, >reset;
 
     *new{
