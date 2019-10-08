@@ -1,32 +1,31 @@
 Pstepper : Pattern {
-    //Code based on Pwhite
+    //Code based on Pseries
     //Sequencer for PianoChopper
-    var <>size, <>length, <counter, >reset;
+    var <>length;
 
     *new{
-        arg size = 1, length = inf;
-        ^super.newCopyArgs(size, length);
+        arg length = inf;
+        ^super.newCopyArgs(length);
     }
 
     storeArgs{
-        ^[size,length];
+        ^[length];
     }
 
-    embedInStream{ arg inval;
-		var counterStr = counter.asStream;
-		var counterVal;
-		length.value(inval).do({
-			counterVal = counterStr.next(inval);
-			if(counterVal.isNil) { ^inval };
-			inval = counterVal.yield;
+    embedInStream{ 
+        arg inval;
+        var counter = 0;
+        while{counter<length}
+        {
+            inval = counter.yield;
             counter = counter + 1;
-		});
+        }
        ^inval;  
     }
 
     printOn{
         arg stream;
-        stream << counter; 
+        stream << "Step Sequencer of length " << length; 
     }
 
 }
