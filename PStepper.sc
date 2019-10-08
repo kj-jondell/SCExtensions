@@ -15,11 +15,11 @@ Pstepper : Pattern {
     embedInStream{ arg inval;
 		var counterStr = counter.asStream;
 		var counterVal;
-        counter = counter + 1;
 		length.value(inval).do({
 			counterVal = counterStr.next(inval);
 			if(counterVal.isNil) { ^inval };
 			inval = counterVal.yield;
+            counter = counter + 1;
 		});
        ^inval;  
     }
