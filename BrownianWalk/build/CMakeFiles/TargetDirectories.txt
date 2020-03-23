@@ -1,0 +1,4 @@
+/Users/kj/Library/Application Support/SuperCollider/Extensions/ugens/build/CMakeFiles/BrownianWalk_supernova.dir
+/Users/kj/Library/Application Support/SuperCollider/Extensions/ugens/build/CMakeFiles/rebuild_cache.dir
+/Users/kj/Library/Application Support/SuperCollider/Extensions/ugens/build/CMakeFiles/edit_cache.dir
+/Users/kj/Library/Application Support/SuperCollider/Extensions/ugens/build/CMakeFiles/BrownianWalk.dir
