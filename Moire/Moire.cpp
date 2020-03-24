@@ -65,7 +65,6 @@ struct Moire : public SCUnit {
                 noise_l = (-1+((float)rand()/RAND_MAX)*2); //inLeft
                 noise_r = (-1+((float)rand()/RAND_MAX)*2); //inRight
 
-
                 composite_l = 0, composite_r = 0;
                 for(int tap = 1; tap<16; tap++){                    
                     composite_l += harmonics/((float)tap)*delaybuf_l[mod((phase-(tap)*(int)((float)sampleRate()/(freq))), buf_size)];
