@@ -59,7 +59,7 @@ struct Moire : public SCUnit {
             float noise_l, noise_r; 
             float composite_l = 0, composite_r = 0;
 
-            //Print("%i\n",buf_size);
+            //Print("%i\n",buf_size); //..
             for (int i = 0; i<inNumSamples; i++)
             {
                 noise_l = (-1+((float)rand()/RAND_MAX)*2); //inLeft
