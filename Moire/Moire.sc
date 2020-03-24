@@ -1,14 +1,7 @@
 Moire : MultiOutUGen {
 
-    *ar { arg /* in, */freq = 110, max_delay = 2, harmonics = 0.5, detune = 1.01;
-        /*
-        if(in.size != 2) {
-            Error(
-                "Input signal must be stereo!"
-            ).throw;
-        };
-        */
-        ^this.multiNew('audio', /*in[0], in[1], */freq, max_delay, harmonics, detune);
+    *ar { arg freq = 110, max_delay = 2, harmonics = 0.5, detune = 1.01, mul = 0.7;
+        ^this.multiNew('audio', freq, max_delay, harmonics, detune, mul);
     }
 
     init {
@@ -16,7 +9,5 @@ Moire : MultiOutUGen {
         inputs = theInputs;
         ^this.initOutputs(2, rate);
     }
-
-    //checkInputs { ^this.checkNInputs(0) }
 
 }

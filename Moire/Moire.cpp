@@ -20,17 +20,15 @@ struct Moire : public SCUnit {
             max_delay = in0(1);
             buf_size = NEXTPOWEROFTWO(sampleRate()*max_delay);
 
-            noise = (float*)RTAlloc(mWorld, buf_size*sizeof(float));
             delaybuf_l = (float*)RTAlloc(mWorld, buf_size*sizeof(float));//Cyclic buffer
             delaybuf_r = (float*)RTAlloc(mWorld, buf_size*sizeof(float));//Cyclic buffer
 
-            if(noise == NULL || delaybuf_l == NULL || delaybuf_r == NULL){
+            if(delaybuf_l == NULL || delaybuf_r == NULL){
                 ClearUnitOutputs(this, 1);
                 Print("Failed to allocate memory for Moire ugen.\n");
                 return ;
             }
 
-            memset(noise, 0, buf_size*sizeof(float));
             memset(delaybuf_l, 0, buf_size*sizeof(float));
             memset(delaybuf_r, 0, buf_size*sizeof(float));
 
@@ -38,53 +36,71 @@ struct Moire : public SCUnit {
         }
 
         ~Moire(){
-            //RTFree(mWorld, noise);
             if(delaybuf_l != nullptr)
                 RTFree(mWorld, delaybuf_l);
             if(delaybuf_r != nullptr)
                 RTFree(mWorld, delaybuf_r);
-            if(noise != nullptr)
-                RTFree(mWorld, noise);
-            //ClearUnitOutputs(this, 1);
         }
 
     private:
-        float *noise = nullptr, *delaybuf_l = nullptr, *delaybuf_r = nullptr;
+        float *delaybuf_l = nullptr, *delaybuf_r = nullptr;
         int buf_size = 0, phase = 0, max_delay = 0;
 
         void next(int inNumSamples){
             float *outLeft = out(0);
             float *outRight = out(1);
-            //const float *inLeft = in(0);
-            //const float *inRight = in(1);
 
             float freq = in0(0); 
+            
             float harmonics = in0(2);
             float detune = in0(3);
+            float mul = in0(4);
 
-            int delay_amt_l, delay_amt_r; 
             float noise_l, noise_r; 
+            float composite_l = 0, composite_r = 0;
 
             //Print("%i\n",buf_size);
             for (int i = 0; i<inNumSamples; i++)
             {
-                delay_amt_l = (phase-(int)(sampleRate()/freq))%buf_size;
-                delay_amt_r = (phase-(int)(sampleRate()/(detune*freq)))%buf_size;
-
                 noise_l = (-1+((float)rand()/RAND_MAX)*2); //inLeft
                 noise_r = (-1+((float)rand()/RAND_MAX)*2); //inRight
 
-                outLeft[i] = zapgremlins(noise_l + harmonics*delaybuf_l[delay_amt_l>= 0 ? delay_amt_l : buf_size+delay_amt_l]);
-                outRight[i] = zapgremlins(noise_r + harmonics*delaybuf_r[delay_amt_l>= 0 ? delay_amt_l : buf_size+delay_amt_l]);
+                composite_l = 0, composite_r = 0;
+                for(int tap = 1; tap<16; tap++){                    
+                    composite_l += harmonics/((float)tap)*delaybuf_l[mod((phase-(tap)*(int)((float)sampleRate()/(freq))), buf_size)];
+                    composite_r += harmonics/((float)tap)*delaybuf_r[mod((phase-(tap)*(int)((float)sampleRate()/(tap*freq*detune))), buf_size)];
+                }
 
-                delaybuf_l[phase] = outLeft[i];
-                delaybuf_r[phase] = outRight[i];
+                float left_out = mul*(noise_l + composite_l);
+                float right_out = mul*(noise_r + composite_r);
+
+                outLeft[i] = abs(left_out) > 1 ? sgn(left_out) : left_out;
+                outRight[i] = abs(right_out) > 1 ? sgn(right_out) : right_out;
+
+                delaybuf_l[phase] = outLeft[i]*0.8;
+                delaybuf_r[phase] = outRight[i]*0.8;
 
                 phase = (phase+1) % buf_size;
             }
 
             //Print("delaybuf: %f\n", delaybuf_l[i]);
 
+        }
+
+        /**
+         * int a is modulated, if negative carry over
+         * int b is modulo, total size
+         */
+        int sgn(int a){
+            if (a>=0)
+                return 1;
+            else
+                return -1;
+        }
+
+        int mod(int a, int b){
+            int modulo = a%b;
+            return modulo >= 0 ? modulo : b + modulo;
         }
 
 };
