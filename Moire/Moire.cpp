@@ -6,107 +6,109 @@
  *
  */
 #include "SC_PlugIn.hpp"
-#include <stdlib.h> 
+#include <stdlib.h>
 
 static InterfaceTable *ft;
 
 struct Moire : public SCUnit {
 
-    public:
-        Moire(){
-            //TODO: calc size of noise and data (delay..)
-            // generate noise if no input given...
-            // maxdelay
-            max_delay = in0(1);
-            buf_size = NEXTPOWEROFTWO(sampleRate()*max_delay);
+public:
+  Moire() {
+    // TODO: calc size of noise and data (delay..)
+    // generate noise if no input given...
+    // maxdelay
+    maxDelay = in0(1);
+    bufSize = NEXTPOWEROFTWO(sampleRate() * maxDelay);
 
-            delaybuf_l = (float*)RTAlloc(mWorld, buf_size*sizeof(float));//Cyclic buffer
-            delaybuf_r = (float*)RTAlloc(mWorld, buf_size*sizeof(float));//Cyclic buffer
+    delaybufL =
+        (float *)RTAlloc(mWorld, bufSize * sizeof(float)); // Cyclic buffer
+    delaybufR =
+        (float *)RTAlloc(mWorld, bufSize * sizeof(float)); // Cyclic buffer
 
-            if(delaybuf_l == NULL || delaybuf_r == NULL){
-                ClearUnitOutputs(this, 1);
-                Print("Failed to allocate memory for Moire ugen.\n");
-                return ;
-            }
+    if (delaybufL == NULL || delaybufR == NULL) {
+      ClearUnitOutputs(this, 1);
+      Print("Failed to allocate memory for Moire ugen.\n");
+      return;
+    }
 
-            memset(delaybuf_l, 0, buf_size*sizeof(float));
-            memset(delaybuf_r, 0, buf_size*sizeof(float));
+    memset(delaybufL, 0, bufSize * sizeof(float));
+    memset(delaybufR, 0, bufSize * sizeof(float));
 
-            set_calc_function<Moire,&Moire::next>();
-        }
+    set_calc_function<Moire, &Moire::next>();
+  }
 
-        ~Moire(){
-            if(delaybuf_l != nullptr)
-                RTFree(mWorld, delaybuf_l);
-            if(delaybuf_r != nullptr)
-                RTFree(mWorld, delaybuf_r);
-        }
+  ~Moire() {
+    if (delaybufL != nullptr)
+      RTFree(mWorld, delaybufL);
+    if (delaybufR != nullptr)
+      RTFree(mWorld, delaybufR);
+  }
 
-    private:
-        float *delaybuf_l = nullptr, *delaybuf_r = nullptr;
-        int buf_size = 0, phase = 0, max_delay = 0;
+private:
+  float *delaybufL = nullptr, *delaybufR = nullptr;
+  int bufSize = 0, phase = 0, maxDelay = 0;
 
-        void next(int inNumSamples){
-            float *outLeft = out(0);
-            float *outRight = out(1);
+  void next(int inNumSamples) {
+    float *outLeft = out(0);
+    float *outRight = out(1);
 
-            float freq = in0(0); 
-            
-            float harmonics = in0(2);
-            float detune = in0(3);
-            float mul = in0(4);
+    float freq = in0(0);
 
-            float noise_l, noise_r; 
-            float composite_l = 0, composite_r = 0;
+    float harmonics = in0(2);
+    float detune = in0(3);
+    float mul = in0(4);
 
-            //Print("%i\n",buf_size); //..
-            for (int i = 0; i<inNumSamples; i++)
-            {
-                noise_l = (-1+((float)rand()/RAND_MAX)*2); //inLeft
-                noise_r = (-1+((float)rand()/RAND_MAX)*2); //inRight
+    float noiseL, noiseR;
+    float compositeL = 0, compositeR = 0;
 
-                composite_l = 0, composite_r = 0;
-                for(int tap = 1; tap<16; tap++){                    
-                    composite_l += harmonics/((float)tap)*delaybuf_l[mod((phase-(tap)*(int)((float)sampleRate()/(freq))), buf_size)];
-                    composite_r += harmonics/((float)tap)*delaybuf_r[mod((phase-(tap)*(int)((float)sampleRate()/(tap*freq*detune))), buf_size)];
-                }
+    for (int i = 0; i < inNumSamples; i++) {
+      noiseL = (-1 + ((float)rand() / RAND_MAX) * 2); // inLeft
+      noiseR = (-1 + ((float)rand() / RAND_MAX) * 2); // inRight
 
-                float left_out = mul*(noise_l + composite_l);
-                float right_out = mul*(noise_r + composite_r);
+      compositeL = 0, compositeR = 0;
+      for (int tap = 1; tap < 16; tap++) {
+        compositeL +=
+            harmonics / ((float)tap) *
+            delaybufL[mod((phase - (tap) * (int)((float)sampleRate() / (freq))),
+                          bufSize)];
+        compositeR +=
+            harmonics / ((float)tap) *
+            delaybufR[mod((phase - (tap) * (int)((float)sampleRate() /
+                                                 (tap * freq * detune))),
+                          bufSize)];
+      }
 
-                outLeft[i] = abs(left_out) > 1 ? sgn(left_out) : left_out;
-                outRight[i] = abs(right_out) > 1 ? sgn(right_out) : right_out;
+      float leftOut = mul * (noiseL + compositeL);
+      float rightOut = mul * (noiseR + compositeR);
 
-                delaybuf_l[phase] = outLeft[i]*0.8;
-                delaybuf_r[phase] = outRight[i]*0.8;
+      outLeft[i] = abs(leftOut) > 1 ? sgn(leftOut) : leftOut;
+      outRight[i] = abs(rightOut) > 1 ? sgn(rightOut) : rightOut;
 
-                phase = (phase+1) % buf_size;
-            }
+      delaybufL[phase] = outLeft[i] * 0.8;
+      delaybufR[phase] = outRight[i] * 0.8;
 
-            //Print("delaybuf: %f\n", delaybuf_l[i]);
+      phase = (phase + 1) % bufSize;
+    }
+  }
 
-        }
+  /**
+   * int a is modulated, if negative carry over
+   * int b is modulo, total size
+   */
+  int sgn(int a) {
+    if (a >= 0)
+      return 1;
+    else
+      return -1;
+  }
 
-        /**
-         * int a is modulated, if negative carry over
-         * int b is modulo, total size
-         */
-        int sgn(int a){
-            if (a>=0)
-                return 1;
-            else
-                return -1;
-        }
-
-        int mod(int a, int b){
-            int modulo = a%b;
-            return modulo >= 0 ? modulo : b + modulo;
-        }
-
+  int mod(int a, int b) {
+    int modulo = a % b;
+    return modulo >= 0 ? modulo : b + modulo;
+  }
 };
 
 PluginLoad(MoireUGens) {
-    ft = inTable; 
-    registerUnit<Moire>(ft, "Moire");
+  ft = inTable;
+  registerUnit<Moire>(ft, "Moire");
 }
-

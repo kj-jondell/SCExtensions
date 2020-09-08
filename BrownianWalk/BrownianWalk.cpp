@@ -33,7 +33,7 @@ struct BrownianWalk : public SCUnit {
             for (int i=0; i < inNumSamples; ++i)
             {
                 outBuf[i] = l_rate;
-                l_rate += incr*(-1+((float)rand()/RAND_MAX)*2);
+                l_rate += incr*(-1+((float)rand()/RAND_MAX)*2); //use frand2 instead....(how?)
             }
 
             rate = l_rate;
@@ -47,7 +47,7 @@ struct BrownianWalk : public SCUnit {
             for (int i=0; i < inNumSamples; ++i)
             {
                 outBuf[i] = l_rate;
-                l_rate += incr*(-1+((float)rand()/RAND_MAX)*2);
+                l_rate += incr*(-1+((float)rand()/RAND_MAX)*2);//use frand2 instead...(how?)
             }
 
             rate = l_rate;
